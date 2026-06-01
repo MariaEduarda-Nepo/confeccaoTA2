@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Models\Pedido;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -11,17 +11,11 @@ class PedidoCriadoNotification extends Notification
 {
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
+    public function __construct(public Pedido $pedido)
     {
-        //
     }
 
     /**
-     * Get the notification's delivery channels.
-     *
      * @return array<int, string>
      */
     public function via(object $notifiable): array
@@ -29,26 +23,29 @@ class PedidoCriadoNotification extends Notification
         return ['mail'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
+        $clienteNome = optional($this->pedido->cliente)->nome;
+
         return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
+            ->subject("Confirmação do pedido #{$this->pedido->id}")
+            ->greeting($clienteNome ? "Olá, {$clienteNome}!" : 'Olá!')
+            ->line('Seu pedido foi criado com sucesso.')
+            ->line('Número do pedido: ' . $this->pedido->id)
+            ->line('Valor total: R$ ' . number_format((float) $this->pedido->total, 2, ',', '.'))
+            ->line('Status atual: ' . ($this->pedido->status ?? 'pendente'))
+            ->action('Ver detalhes do pedido', url('/'))
+            ->line('Obrigado por comprar com a gente!');
     }
 
     /**
-     * Get the array representation of the notification.
-     *
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'pedido_id' => $this->pedido->id,
         ];
     }
 }
+
